@@ -1,0 +1,14 @@
+{
+  "name": "GPB-Discord",
+  "version": "1.0.0",
+  "description": "A general purpose bot for Discord that is commanded using PM's with CLI-esque format",
+  "main": "app.js",
+  "dependencies": {
+    "discord.io": "^1.4.7"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Noah Shuart <shuart.noah@gmail.com>",
+  "license": "MIT"
+}

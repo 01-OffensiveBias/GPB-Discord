@@ -1,0 +1,6 @@
+# Node packages
+node_modules/
+
+# Files that need to be ignored
+botinfo.json
+.jshintrc
