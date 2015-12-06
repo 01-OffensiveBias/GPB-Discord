@@ -14,6 +14,7 @@
     var botinfo          = JSON.parse(fs.readFileSync('botinfo.json'));
 
     // Constants
+    // TODO Use the 'presence' event from DiscordClient
     var BOTUID           = botinfo.constants.botuid;
     var SERVERID         = botinfo.constants.serverid;
     var DOMAIN           = "127.0.0.1";
@@ -164,23 +165,11 @@
         members = discordServer.members;
 
         // TODO Periodically spawn a worker to rebuild these arrays
+        rebuildChannelArrays();
 
-        // Add all direct message channels into the directChannels array
-        Object.keys(bot.directMessages).forEach(v => {
-            if (directChannels.indexOf(bot.directMessages[v].id) == -1)
-                directChannels.push(bot.directMessages[v].id);
-        });
-
-        // Add all of the global text channels into the globalChannels array
-        Object.keys(channels).forEach(v => {
-            if (channels[v].type == "text" && directChannels.indexOf(v) == -1)
-                globalChannels.push(v);
-        });
-
-        // Add all of the "user" objects to the MeberList array
-        Object.keys(members).forEach(v => {
-            memberList.push(members[v].user);
-        });
+        // Have to be careful about interfering with current tasks
+        // that are using those arrays
+        setInterval(rebuildChannelArrays, 60000);
 
         console.log("I am the Warden Eternal. I stand in service to Cortana.");
     });
@@ -218,6 +207,36 @@
             }
         }
     });
+
+    function rebuildChannelArrays() {
+        var newDirectChannels   = [];
+        var newGlobalChannels   = [];
+        var newMemberList       = [];
+
+        // Add all direct message channels into the directChannels array
+        Object.keys(bot.directMessages).forEach(v => {
+            if (directChannels.indexOf(bot.directMessages[v].id) == -1)
+                directChannels.push(bot.directMessages[v].id);
+        });
+
+        // Add all of the global text channels into the globalChannels array
+        Object.keys(channels).forEach(v => {
+            if (channels[v].type == "text" && directChannels.indexOf(v) == -1)
+                globalChannels.push(v);
+        });
+
+        // Add all of the "user" objects to the MeberList array
+        Object.keys(members).forEach(v => {
+            memberList.push(members[v].user);
+        });
+
+        // Will this encounter issues with references being thrown around?
+        directChannels   = newDirectChannels.slice(0);
+        globalChannels   = newGlobalChannels.slice(0);
+        memberList       = newMemberList.slice(0);
+
+        console.log("Rebuilt channel arrays");
+    }
 
     function authorize(userid) {
         return authorized_users.filter((v) => v.userid == userid).length > 0;
