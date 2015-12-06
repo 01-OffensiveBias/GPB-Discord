@@ -4,3 +4,9 @@ node_modules/
 # Files that need to be ignored
 botinfo.json
 .jshintrc
+
+# Downloaded videos
+downloads/
+
+# Build
+compat/

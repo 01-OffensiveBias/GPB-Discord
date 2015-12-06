@@ -5,6 +5,9 @@
 
     // Imports
     var fs               = require('fs');
+    var ytdl             = require('ytdl-core');
+    var sanitize         = require('sanitize-filename');
+    var express          = require('express');
     var DiscordClient    = require('discord.io');
 
     // Get bot info
@@ -13,6 +16,8 @@
     // Constants
     var BOTUID           = botinfo.constants.botuid;
     var SERVERID         = botinfo.constants.serverid;
+    var DOMAIN           = "127.0.0.1";
+    var DOWNLOADS        = "/downloads";
 
     // Globals
     var discordServer;
@@ -25,10 +30,24 @@
     var authorized_users = botinfo.authorized_users;
     var denialMessages   = botinfo.denialMessages;
     var publicCommands   = botinfo.publicCommands;
+    var app              = express();
+
+    // Create the downloads directory for the wget command
+    try {
+        fs.statSync(DOWNLOADS).isDirectory();
+    } catch (e) {
+        fs.mkdir(DOWNLOADS);
+    }
+
+    app.use(DOWNLOADS, express.static(__dirname + DOWNLOADS));
+
+    var server = app.listen(8080, () => {
+        console.log("File host started.");
+    });
 
     // Collection of commands
     var commands = {
-        ping: function(senderid) {
+        ping: (senderid) => {
             if (arguments.length > 1) {
                 var matches = 0;
 
@@ -65,7 +84,7 @@
                 });
             }
         },
-        clean: function(senderid, channelName) {
+        clean: (senderid, channelName) => {
             if (channelName) {
                 globalChannels
                     .filter((v) => channels[v].name == channelName)
@@ -89,6 +108,44 @@
                     });
                 });
             }
+        },
+        // TODO Record what files have been downloaded to avoid downloading twice
+        // TODO Send a url to the file hosted through Express
+        wget: (senderid, url) => {
+            if (parseYoutubeUrl(url)) {
+                ytdl.getInfo(url, (err, info) => {
+                    if (!err) {
+                        var stream = ytdl.downloadFromInfo(info, {
+                            filter: (format) =>
+                                format.quality == "hd720" && format.container == "mp4"
+                        });
+                        // TODO Download progress indicator by editing this message
+                        stream.on('response', (res) => bot.sendMessage({
+                            to: senderid,
+                            message: "Downloading..."
+                        }));
+                        stream.on('end', () =>
+                            bot.sendMessage({
+                                to: senderid,
+                                message: `Finished downloading "${info.title}"`
+                            }, () => bot.sendMessage({
+                                to: senderid,
+                                message: `Download it here: http://${DOMAIN}:8080/downloads/${encodeURIComponent(sanitize(info.title))}.mp4`
+                            }))
+                        );
+                        stream.pipe(fs.createWriteStream(`downloads/${sanitize(info.title)}.mp4`));
+                    } else {
+                        console.log(err);
+                    }
+                });
+            } else if (false) {
+                // TODO Generic file download
+            } else {
+                bot.sendMessage({
+                    to: senderid,
+                    message: `Url "${url}" is invalid`
+                });
+            }
         }
     };
 
@@ -101,19 +158,19 @@
         // TODO Periodically spawn a worker to rebuild these arrays
 
         // Add all direct message channels into the directChannels array
-        Object.keys(bot.directMessages).forEach((v) => {
+        Object.keys(bot.directMessages).forEach(v => {
             if (directChannels.indexOf(bot.directMessages[v].id) == -1)
                 directChannels.push(bot.directMessages[v].id);
         });
 
         // Add all of the global text channels into the globalChannels array
-        Object.keys(channels).forEach((v) => {
+        Object.keys(channels).forEach(v => {
             if (channels[v].type == "text" && directChannels.indexOf(v) == -1)
                 globalChannels.push(v);
         });
 
         // Add all of the "user" objects to the MeberList array
-        Object.keys(members).forEach((v) => {
+        Object.keys(members).forEach(v => {
             memberList.push(members[v].user);
         });
 
@@ -132,7 +189,14 @@
             if (publicCommands.indexOf(cmd) > -1 || authorize(userID)) {
                 // Null-check
                 if (commands[cmd])
-                    commands[cmd].apply(rawEvent, [userID].concat(cmdargs));
+                    try {
+                        commands[cmd].apply(rawEvent, [userID].concat(cmdargs));
+                    } catch (e) {
+                        bot.sendMessage({
+                            to: botinfo.authorized_users.filter(v => v.username == "_OffensiveBias")[0].userid,
+                            message: `Error: ${e}`
+                        });
+                    }
                 else
                     bot.sendMessage({
                         to: userID,
@@ -157,5 +221,11 @@
         // }
         //
         // return false;
+    }
+
+    function parseYoutubeUrl (url) {
+        var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/;
+        var match = url.match(regExp);
+        return (match&&match[7].length==11)? match[7] : false;
     }
 })();
