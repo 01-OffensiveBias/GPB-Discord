@@ -115,9 +115,17 @@
             if (parseYoutubeUrl(url)) {
                 ytdl.getInfo(url, (err, info) => {
                     if (!err) {
+                        // Get the highest quality video that meet this criteria
+                        var video = info.formats.filter(f =>
+                            f.audioEncoding && (
+                                (f.quality == "hd720" && f.container == "mp4") ||
+                                (f.quality == "medium" && f.container == "mp4") ||
+                                (f.quality == "small" && f.container == "3gp")
+                            )
+                        )[0];
                         var stream = ytdl.downloadFromInfo(info, {
                             filter: (format) =>
-                                format.quality == "hd720" && format.container == "mp4"
+                                format.quality == video.quality && format.container == video.container
                         });
                         // TODO Download progress indicator by editing this message
                         stream.on('response', (res) => bot.sendMessage({
@@ -130,10 +138,10 @@
                                 message: `Finished downloading "${info.title}"`
                             }, () => bot.sendMessage({
                                 to: senderid,
-                                message: `Download it here: http://${DOMAIN}:8080/downloads/${encodeURIComponent(sanitize(info.title))}.mp4`
+                                message: `Download it here: http://${DOMAIN}:8080/downloads/${encodeURIComponent(sanitize(info.title))}.${video.container}`
                             }))
                         );
-                        stream.pipe(fs.createWriteStream(`downloads/${sanitize(info.title)}.mp4`));
+                        stream.pipe(fs.createWriteStream(`downloads/${sanitize(info.title)}.${video.container}`));
                     } else {
                         console.log(err);
                     }
