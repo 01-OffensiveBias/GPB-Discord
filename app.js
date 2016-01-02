@@ -14,11 +14,12 @@
     var botinfo          = JSON.parse(fs.readFileSync('botinfo.json'));
 
     // Constants
-    // TODO Use the 'presence' event from DiscordClient
+    // TODO Use the 'presence' event from DiscordClient?
     var BOTUID           = botinfo.constants.botuid;
     var SERVERID         = botinfo.constants.serverid;
-    var DOMAIN           = "127.0.0.1";
-    var DOWNLOADS        = "/downloads";
+    // TODO Get from botinfo.json
+    var DOMAIN           = botinfo.constants.domain;
+    var DOWNLOADS        = botinfo.constants.downloads;
 
     // Globals
     var discordServer;
@@ -40,13 +41,14 @@
         fs.mkdir(DOWNLOADS);
     }
 
-    app.use(DOWNLOADS, express.static(__dirname + DOWNLOADS));
+    app.use('/' + DOWNLOADS, express.static(__dirname + '/' + DOWNLOADS));
 
     var server = app.listen(8080, () => {
         console.log("File host started.");
     });
 
     // Collection of commands
+    // TODO Separate into a directory of .js [modules?] and load them selectively
     var commands = {
         ping: (senderid) => {
             if (arguments.length > 1) {
@@ -139,10 +141,10 @@
                                 message: `Finished downloading "${info.title}"`
                             }, () => bot.sendMessage({
                                 to: senderid,
-                                message: `Download it here: http://${DOMAIN}:8080/downloads/${encodeURIComponent(sanitize(info.title))}.${video.container}`
+                                message: `Download it here: http://${DOMAIN}:8080/${DOWNLOADS}/${encodeURIComponent(sanitize(info.title))}.${video.container}`
                             }))
                         );
-                        stream.pipe(fs.createWriteStream(`downloads/${sanitize(info.title)}.${video.container}`));
+                        stream.pipe(fs.createWriteStream(`${DOWNLOADS}/${sanitize(info.title)}.${video.container}`));
                     } else {
                         console.log(err);
                     }
@@ -169,7 +171,7 @@
 
         // Have to be careful about interfering with current tasks
         // that are using those arrays
-        setInterval(rebuildChannelArrays, 60000);
+        setInterval(rebuildChannelArrays, 60000); // Figure out a better event-based solution
 
         console.log("I am the Warden Eternal. I stand in service to Cortana.");
     });
@@ -240,14 +242,6 @@
 
     function authorize(userid) {
         return authorized_users.filter((v) => v.userid == userid).length > 0;
-
-        // for (var i = 0; i < authorized_users.length; i++) {
-        //     if (authorized_users[i].userid == userid) {
-        //         return true;
-        //     }
-        // }
-        //
-        // return false;
     }
 
     function parseYoutubeUrl (url) {
