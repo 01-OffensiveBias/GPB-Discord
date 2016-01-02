@@ -1,0 +1,26 @@
+{
+    "constants": {
+        "botuid": "00000000000000000",
+        "serverid": "00000000000000000",
+        "domain": "127.0.0.1",
+        "downloads": "downloads"
+    },
+    "authorized_users": [{
+        "username": "BotUserName",
+        "userid": "00000000000000000"
+    }],
+    "loginInfo": {
+        "email": "botemail@email.com",
+        "password": "BotPassword01010!",
+        "autorun": true
+    },
+    "publicCommands": [
+        "publicly_accessible_command_1",
+        "publicly_accessible_command_2"
+    ],
+    "denialMessages": [
+        "Enter a list of messages",
+        "That the bot will randomly choose from when denying access to a person",
+        "This text is directly sent through Discord so you *can* use the markdown syntax"
+    ]
+}
