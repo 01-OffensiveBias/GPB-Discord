@@ -4,6 +4,7 @@ node_modules/
 # Files that need to be ignored
 botinfo.json
 .jshintrc
+tenc
 
 # Downloaded videos
 downloads/

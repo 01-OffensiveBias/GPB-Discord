@@ -8,6 +8,7 @@
     "express": "^4.13.3",
     "gulp": "^3.9.0",
     "gulp-traceur": "^0.17.1",
+    "merge-stream": "^1.0.0",
     "sanitize-filename": "^1.5.3",
     "ytdl-core": "^0.7.8"
   },
